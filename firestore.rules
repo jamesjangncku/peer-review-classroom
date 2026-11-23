@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function teacher() { return signedIn() && request.auth.token.teacher == true; }
+    function student() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+    }
+    match /users/{uid} {
+      allow read: if teacher() || (signedIn() && request.auth.uid == uid);
+      allow write: if false; // 僅由可信任的管理程序建立帳號資料與 teacher custom claim。
+    }
+    match /assignments/{id} {
+      allow read: if teacher() || (student() && resource.data.active == true
+        && resource.data.className == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.className);
+      allow create, update, delete: if teacher();
+    }
+    match /submissions/{id} {
+      allow read: if teacher() || (student() && resource.data.evaluatorUid == request.auth.uid);
+      allow create: if student()
+        && request.resource.data.evaluatorUid == request.auth.uid
+        && request.resource.data.evaluatorName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && request.resource.data.keys().hasOnly(['assignmentId','target','scores','feedback','createdAt','evaluatorUid','evaluatorName'])
+        && request.resource.data.feedback is string && request.resource.data.feedback.size() >= 8
+        && request.resource.data.scores is list && request.resource.data.scores.size() > 0
+        && request.resource.data.scores.size() <= 12
+        && request.resource.data.scores.hasOnly([1, 2, 3, 4, 5])
+        && exists(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId))
+        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.active == true
+        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targets.hasAny([request.resource.data.target])
+        && request.resource.data.target != get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && request.resource.data.scores.size() == get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.rubric.size()
+        && id == request.resource.data.assignmentId + '_' + request.auth.uid + '_' + request.resource.data.target
+        && !exists(/databases/$(database)/documents/submissions/$(id));
+      allow update, delete: if false;
+    }
+  }
+}
+

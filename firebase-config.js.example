@@ -1,0 +1,9 @@
+// 複製為 firebase-config.js，填入 Firebase Console → 專案設定 → Web app 的設定。
+// Firebase Web API key 是前端識別設定；Firestore Rules 與 Authentication 才負責授權。
+window.FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  appId: "YOUR_APP_ID"
+};
+

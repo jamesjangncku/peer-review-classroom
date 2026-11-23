@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f2"><meta name="description" content="讓學生用手機完成同儕互評，教師即時掌握評分進度與結果。">
+  <title>同儕互評｜課堂評量</title><link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar"><a class="brand" href="#"><span class="brand-mark">互</span><span>課堂評量<small>PEER REVIEW</small></span></a><div class="top-right"><span id="connection" class="connection"><i></i>準備中</span><button id="preview-switch" class="quiet hidden">切換預覽角色</button><button id="logout" class="quiet hidden">登出</button></div></header>
+    <main>
+      <section id="login-view" class="login-layout">
+        <div class="intro"><span class="eyebrow">CLASSROOM · PEER REVIEW</span><h1>讓每一份<br><em>回饋都有價值。</em></h1><p>以清楚的標準互相觀摩，讓同學的觀點成為下一次進步的起點。</p><div class="intro-note"><span>01</span><span>匿名互評・即時統計・手機優先</span></div></div>
+        <form id="login-form" class="card login-card"><div class="card-kicker">WELCOME BACK</div><h2>登入課堂</h2><p class="muted">請使用教師提供的帳號與密碼。</p><label>電子郵件<input id="email" type="email" autocomplete="username" placeholder="name@school.edu" required></label><label>密碼<input id="password" type="password" autocomplete="current-password" placeholder="輸入密碼" required></label><button class="primary full" type="submit">登入 <span>→</span></button><p id="login-error" class="error" role="alert"></p><div id="demo-hint" class="demo-hint hidden">尚未設定 Firebase。<button id="demo-login" type="button" class="text-button">開啟預覽模式</button>可先試用介面。</div></form>
+      </section>
+      <section id="student-view" class="hidden">
+        <div class="page-heading"><div><div class="eyebrow">STUDENT WORKSPACE</div><h1>同儕互評</h1><p class="muted">仔細觀察，給出具體而友善的回饋。</p></div><span id="student-name" class="user-chip"></span></div><div id="student-content"></div>
+      </section>
+      <section id="teacher-view" class="hidden">
+        <div class="page-heading"><div><div class="eyebrow">TEACHER DASHBOARD</div><h1>評量總覽</h1><p class="muted">即時掌握參與狀況與作品表現。</p></div><button id="new-assignment" class="primary">＋ 建立評量</button></div>
+        <div class="stats-grid" id="stats"></div><div class="dashboard-grid"><section class="card assignments-card"><div class="section-head"><div><div class="card-kicker">ASSESSMENT</div><h2>評量活動</h2></div><select id="assignment-select" aria-label="選擇評量"></select></div><div id="assignment-detail"></div></section><section class="card chart-card"><div class="card-kicker">LIVE RESULTS</div><h2>各項指標平均</h2><div id="chart"></div></section></div><section class="card responses-card"><div class="section-head"><div><div class="card-kicker">SUBMISSIONS</div><h2>回饋紀錄</h2></div><span id="live-label" class="live-label"><i></i>即時更新</span></div><div class="table-wrap"><table><thead><tr><th>受評作品</th><th>完成數</th><th>平均分</th><th>最新回饋</th></tr></thead><tbody id="results-table"></tbody></table></div></section>
+      </section>
+      <div id="toast" class="toast" role="status"></div>
+    </main><footer><span>課堂評量工具</span><span>以尊重開始，以成長結束。</span></footer>
+  </div><dialog id="assignment-dialog"><form id="assignment-form" method="dialog"><div class="section-head"><div><div class="card-kicker">NEW ASSESSMENT</div><h2>建立評量</h2></div><button class="icon-button" value="cancel" aria-label="關閉">×</button></div><label>評量名稱<input id="a-title" required maxlength="80" placeholder="例：專題成果發表"></label><label>班級／代碼<input id="a-class" required maxlength="50" placeholder="例：設計一甲"></label><label>評分項目（每行一項）<textarea id="a-rubric" rows="4" required placeholder="內容完整度\n表達清晰度\n創意與觀點"></textarea></label><label>受評作品／學生（每行一位）<textarea id="a-targets" rows="5" required placeholder="王小明\n陳小華\n林同學"></textarea></label><label>每位學生需評幾份<input id="a-count" type="number" min="1" max="20" value="2" required></label><button class="primary full" value="create">建立評量</button></form></dialog><script src="./firebase-config.js"></script><script type="module" src="./app.js"></script>
+</body></html>
+
