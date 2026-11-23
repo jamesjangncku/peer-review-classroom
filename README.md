@@ -26,7 +26,7 @@
 
 ## GitHub Pages 部署
 
-將此專案推送到 GitHub repository 的 `main` branch，於 **Settings → Pages → Build and deployment** 選擇 **GitHub Actions**。在 **Settings → Secrets and variables → Actions → Variables** 新增 `FIREBASE_API_KEY`、`FIREBASE_AUTH_DOMAIN`、`FIREBASE_PROJECT_ID`、`FIREBASE_APP_ID`。Workflow 會產生前端設定並部署 Pages。Firebase Authentication 的 Authorized domains 也需加入實際的 `*.github.io` 網域。此工作目錄目前沒有 GitHub remote，因此尚未觸發公開部署。
+此專案已推送到 [GitHub repository](https://github.com/jamesjangncku/peer-review-classroom) 的 `main` branch。Pages workflow 會在每次推送時部署網站；若 Firebase 尚未設定，先部署預覽模式。啟用實際互評前，於 **Settings → Secrets and variables → Actions → Variables** 新增 `FIREBASE_API_KEY`、`FIREBASE_AUTH_DOMAIN`、`FIREBASE_PROJECT_ID`、`FIREBASE_APP_ID`，並在 Firebase Authentication 的 Authorized domains 加入 `jamesjangncku.github.io`。
 
 ## 評量資料與操作
 
