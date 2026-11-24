@@ -1,3 +1,4 @@
+import { loginEmail } from './login-identity.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, addDoc, setDoc, onSnapshot, query, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -9,7 +10,7 @@ const hasFirebase = !!window.FIREBASE_CONFIG?.projectId && !window.FIREBASE_CONF
 if (hasFirebase) { try { const app = initializeApp(window.FIREBASE_CONFIG); auth = getAuth(app); db = getFirestore(app); onAuthStateChanged(auth, onUser); $('#connection').innerHTML='<i></i>連線中'; } catch(e) { setError('Firebase 設定無法載入'); } }
 else { $('#connection').innerHTML='<i></i>預覽模式可用'; $('#demo-hint').classList.remove('hidden'); }
 
-$('#login-form').addEventListener('submit', async e => { e.preventDefault(); $('#login-error').textContent=''; if (!auth) { $('#login-error').textContent='尚未設定 Firebase，請使用預覽模式。'; return; } try { await signInWithEmailAndPassword(auth,$('#email').value.trim(),$('#password').value); } catch(err) { $('#login-error').textContent=authError(err.code); } });
+$('#login-form').addEventListener('submit', async e => { e.preventDefault(); $('#login-error').textContent=''; if (!auth) { $('#login-error').textContent='尚未設定 Firebase，請使用預覽模式。'; return; } try { await signInWithEmailAndPassword(auth,loginEmail($('#email').value),$('#password').value); } catch(err) { $('#login-error').textContent=err.code ? authError(err.code) : err.message; } });
 $('#demo-login').addEventListener('click',()=>{demo=true;user={uid:'demo-teacher'};profile={role:'teacher',name:'林老師'};ensureDemo();enterApp();});
 $('#preview-switch').addEventListener('click',()=>{if(!demo)return;profile=profile.role==='teacher'?{role:'student',name:'陳小華'}:{role:'teacher',name:'林老師'};user={uid:profile.role==='teacher'?'demo-teacher':'demo-student'};enterApp()});
 $('#logout').addEventListener('click',async()=>{cleanup();if(demo){demo=false;show('login-view')}else await signOut(auth)});
@@ -37,4 +38,3 @@ function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;r
 async function submitReview(button){const card=button.closest('.student-card'),scores=[...card.querySelectorAll('.stars')].map(x=>+x.dataset.value||0),feedback=card.querySelector('textarea')?.value.trim()||'',a=assignmentRows.find(x=>x.id===button.dataset.a);if(scores.some(x=>x<1)||feedback.length<8){toast('請完成所有評分，並留下至少 8 字回饋');return}button.disabled=true;const submission={assignmentId:a.id,target:button.dataset.target,scores,feedback,createdAt:Date.now(),evaluatorUid:user.uid,evaluatorName:profile.name||'學生'};try{if(demo){submission.id=crypto.randomUUID();submissions.push(submission);saveDemo();renderStudent()}else{const key=`${a.id}_${user.uid}_${button.dataset.target}`;await setDoc(doc(db,'submissions',key),{...submission,createdAt:serverTimestamp()})}toast('已送出，謝謝你的回饋！')}catch(e){button.disabled=false;toast(e.code==='permission-denied'?'無法送出：請確認此評量仍開放，且你尚未評過這份作品。':'送出失敗：'+e.message)}}
 function toast(s){const el=$('#toast');el.textContent=s;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3000)}
 if(!hasFirebase)show('login-view');
-
