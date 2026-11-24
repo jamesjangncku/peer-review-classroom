@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {assessmentDraft,weeklyPresenters,reviewTargets} from '../course-model.js';
+import {resultRows} from '../assessment-tools.js';
+const students=[1,2,3].map(i=>({id:'s'+i,name:'學生'+i,studentId:'N0000000'+i}));
+const course={id:'c',name:'課程',memberUids:students.map(s=>s.id),groupByUid:{s1:'甲',s2:'甲',s3:'乙'}};
+let a={id:'a',...assessmentDraft(course,students,{title:'學期評量',rubric:['內容'],presentationType:'students',presenterIds:['s1']})};
+const original=a.targets[0],scores=[{assignmentId:'a',target:original,scores:[4]}];
+a={...a,...weeklyPresenters(a,course,students,'students',['s3'])};assert.equal(a.targets.length,2);assert.equal(a.currentTargets.length,1);assert.ok(!reviewTargets(a,'s2').includes(original));assert.equal(resultRows({...a,currentTargets:a.targets},scores,reviewTargets).find(r=>r.target===original).average,80);
+a={...a,...weeklyPresenters(a,course,students,'students',[])};assert.deepEqual(reviewTargets(a,'s2'),[]);assert.equal(a.targets.length,2);
+a={...a,...weeklyPresenters(a,course,students,'students',['s1'])};assert.deepEqual(a.currentTargets,[original]);assert.equal(a.targets.length,2);
+a={...a,...weeklyPresenters(a,course,students,'groups',['甲'])};assert.deepEqual(reviewTargets(a,'s1'),[]);assert.deepEqual(reviewTargets(a,'s2'),[]);assert.equal(reviewTargets(a,'s3').length,1);
+const before=a.targetMembers['第甲組'];a={...a,...weeklyPresenters(a,{...course,groupByUid:{s1:'甲',s2:'乙',s3:'乙'}},students,'groups',['甲'])};assert.deepEqual(a.targetMembers['第甲組'],before);
+console.log('Weekly switching passed: current/history separation, pause/reactivation, stable identities and group exclusions.');

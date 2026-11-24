@@ -31,6 +31,28 @@ export function templateValues(a) {
 }
 
 export function reviewTargets(a,uid,name='') {
- return a.targets.filter(t=>{if(a.targetMembers?.[t]?.includes(uid))return false;const targetUid=a.targetUids?.[t];if(targetUid?targetUid===uid:t===name)return false;return a.reviewMode!=='other-groups'||a.groupByUid?.[uid]!==a.groupByUid?.[targetUid];});
+ return (a.currentTargets||a.targets).filter(t=>{if(a.targetMembers?.[t]?.includes(uid))return false;const targetUid=a.targetUids?.[t];if(targetUid?targetUid===uid:t===name)return false;return !targetUid&&a.targetMembers?.[t]?true:a.reviewMode!=='other-groups'||a.groupByUid?.[uid]!==a.groupByUid?.[targetUid];});
 }
 export function expectedReviews(a){return a.evaluatorUids?a.evaluatorUids.reduce((n,uid)=>n+reviewTargets(a,uid).length,0):a.targets.length*(a.targets.length-1);}
+
+export function weeklyPresenters(a,course,students,type,selected){
+ const targets=[...a.targets],targetUids={...a.targetUids},targetMembers={...a.targetMembers},currentTargets=[];
+ // Backfill immutable identities for old individual assessments.
+ for(const t of targets)if(!targetMembers[t]&&targetUids[t])targetMembers[t]=[targetUids[t]];
+ const eligible=a.evaluatorUids||[];
+ for(const id of [...new Set(selected)]){
+   let label,members;
+   if(type==='students'){
+     if(!eligible.includes(id))throw Error('報告學生不在本評量名冊中。');
+     const s=students.find(s=>s.id===id);label=targets.find(t=>targetUids[t]===id)||`${s?.name}（${s?.studentId}）`;
+     if(!s)throw Error('找不到學生帳號。');members=[id];
+   }else if(type==='groups'){
+     label='第'+id+'組';members=targetMembers[label]||eligible.filter(uid=>course.groupByUid?.[uid]===id);
+     if(!members.length)throw Error('該組沒有本評量的學生。');
+   }else throw Error('請選擇學生或組別。');
+   if(label.includes('/'))throw Error('名稱不可包含斜線。');
+   if(!targets.includes(label)){targets.push(label);targetUids[label]=type==='students'?id:'';targetMembers[label]=members;}
+   currentTargets.push(label);
+ }
+ return {targets,targetUids,targetMembers,currentTargets,weeklyType:type};
+}

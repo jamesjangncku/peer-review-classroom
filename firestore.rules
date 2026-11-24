@@ -59,6 +59,17 @@ service cloud.firestore {
               && request.resource.data.publishedAt == request.time)))
         || (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'published'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']))
+        || (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'published'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['targets','targetUids','targetMembers','currentTargets','weeklyType','presentersUpdatedAt'])
+          && request.resource.data.currentTargets is list && request.resource.data.targets is list
+          && request.resource.data.targets.hasAll(resource.data.targets)
+          && request.resource.data.targets.hasAll(request.resource.data.currentTargets)
+          && request.resource.data.weeklyType in ['students','groups']
+          && request.resource.data.targetUids.diff(resource.data.targetUids).changedKeys().size() == 0
+          && request.resource.data.targetUids.diff(resource.data.targetUids).removedKeys().size() == 0
+          && request.resource.data.targetMembers.diff(resource.data.get('targetMembers',{})).changedKeys().size() == 0
+          && request.resource.data.targetMembers.diff(resource.data.get('targetMembers',{})).removedKeys().size() == 0
+          && request.resource.data.presentersUpdatedAt == request.time)
         || (resource.data.get('deleted',false) == false && request.resource.data.deleted == true
           && request.resource.data.active == false && request.resource.data.wasActive == resource.data.active
           && request.resource.data.deletedAt == request.time
@@ -101,9 +112,9 @@ service cloud.firestore {
         && d.feedback is string && d.feedback.size() <= 600 && (a.get('schemaVersion',1) == 2 || d.feedback.size() >= 8)
         && d.scores is list && d.scores.size() > 0 && d.scores.size() <= 12 && d.scores.size() == a.rubric.size()
         && validAnswers(a,d) && a.active == true && member(a.courseId)
-        && a.evaluatorUids.hasAny([request.auth.uid]) && a.targets.hasAny([d.target])
-        && (a.get('schemaVersion',1) == 2 ? !a.targetMembers[d.target].hasAny([request.auth.uid]) : a.targetUids[d.target] != request.auth.uid)
-        && (a.get('reviewMode','all-others') != 'other-groups' || a.groupByUid[request.auth.uid] != a.groupByUid[a.targetUids[d.target]])
+        && a.evaluatorUids.hasAny([request.auth.uid]) && a.targets.hasAny([d.target]) && a.get('currentTargets',a.targets).hasAny([d.target])
+        && (a.get('targetMembers',{}).keys().hasAny([d.target]) ? !a.targetMembers[d.target].hasAny([request.auth.uid]) : a.targetUids[d.target] != request.auth.uid)
+        && (a.get('reviewMode','all-others') != 'other-groups' || a.targetUids[d.target] == '' || a.groupByUid[request.auth.uid] != a.groupByUid[a.targetUids[d.target]])
         && id == d.assignmentId + '_' + request.auth.uid + '_' + d.target;
     }
     match /submissions/{id} {
