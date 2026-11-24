@@ -115,3 +115,9 @@ $('#update-presenters').onclick=()=>{const a=selectedAssessment();if(!a)return;w
 $('#weekly-type').onchange=renderWeeklyOptions;$('#close-weekly').onclick=()=>$('#weekly-dialog').close();
 $('#weekly-form').onsubmit=async e=>{e.preventDefault();const selected=[...$('#weekly-options').querySelectorAll('input:checked')].map(i=>i.value),type=$('#weekly-type').value,button=e.submitter;button.disabled=true;try{await runTransaction(db,async tx=>{const ref=doc(db,'assignments',weeklyAssessmentId),snap=await tx.get(ref);if(!snap.exists())throw Error('找不到評量。');const a=snap.data();if(a.deleted||a.status==='draft')throw Error('請選擇未刪除的已發布評量。');const course=courses.find(c=>c.id===a.courseId);tx.update(ref,{...weeklyPresenters(a,course||{groupByUid:{}},students,type,selected),presentersUpdatedAt:serverTimestamp()});});$('#weekly-dialog').close();toast('本週報告者已更新，歷史成績保留。');}catch(e){$('#weekly-error').textContent='更新失敗：'+e.message;}finally{button.disabled=false;}};
 $('#result-scope').onchange=renderTeacher;
+
+for(const [prefix,container] of [['weekly','#weekly-options'],['presenter','#presenter-options']]){
+ for(const [action,checked] of [['all',true],['none',false]]){
+  $('#'+prefix+'-select-'+action).onclick=()=>{$(container).querySelectorAll('input[type="checkbox"]').forEach(input=>{input.checked=checked;});};
+ }
+}
