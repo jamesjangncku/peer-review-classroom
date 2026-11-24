@@ -17,10 +17,38 @@ service cloud.firestore {
         && request.resource.data.mustChangePassword == false;
       allow create, delete: if false; // 帳號與角色僅由管理者建立。
     }
+    function member(courseId) {
+      return signedIn() && exists(/databases/$(database)/documents/courses/$(courseId))
+        && get(/databases/$(database)/documents/courses/$(courseId)).data.memberUids.hasAny([request.auth.uid]);
+    }
+    match /courses/{id} {
+      allow read: if teacher() || (student() && resource.data.memberUids.hasAny([request.auth.uid]));
+      allow create, update: if teacher() && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.memberUids is list && request.resource.data.memberUids.size() <= 500;
+      allow delete: if false;
+    }
+    match /templates/{id} {
+      allow read, delete: if teacher();
+      allow create, update: if teacher() && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.rubric is list && request.resource.data.rubric.size() > 0
+        && request.resource.data.rubric.size() <= 12 && request.resource.data.perStudent is int
+        && request.resource.data.perStudent >= 1;
+    }
     match /assignments/{id} {
-      allow read: if teacher() || (student() && resource.data.active == true
-        && resource.data.className == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.className);
-      allow create, update, delete: if teacher();
+      allow read: if teacher() || (student() && member(resource.data.courseId));
+      allow create: if teacher() && exists(/databases/$(database)/documents/courses/$(request.resource.data.courseId))
+        && request.resource.data.title is string && request.resource.data.title.size() > 0
+        && request.resource.data.rubric is list && request.resource.data.rubric.size() > 0
+        && request.resource.data.rubric.size() <= 12
+        && request.resource.data.targets is list && request.resource.data.targets.size() >= 2
+        && request.resource.data.targetUids is map && request.resource.data.evaluatorUids is list
+        && request.resource.data.evaluatorUids == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.memberUids
+        && request.resource.data.perStudent is int && request.resource.data.perStudent >= 1
+        && request.resource.data.perStudent < request.resource.data.targets.size();
+      allow update: if teacher() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']);
+      allow delete: if false;
     }
     match /submissions/{id} {
       allow read: if teacher() || (student() && resource.data.evaluatorUid == request.auth.uid);
@@ -28,14 +56,16 @@ service cloud.firestore {
         && request.resource.data.evaluatorUid == request.auth.uid
         && request.resource.data.evaluatorName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
         && request.resource.data.keys().hasOnly(['assignmentId','target','scores','feedback','createdAt','evaluatorUid','evaluatorName'])
-        && request.resource.data.feedback is string && request.resource.data.feedback.size() >= 8
+        && request.resource.data.feedback is string && request.resource.data.feedback.size() >= 8 && request.resource.data.feedback.size() <= 600
         && request.resource.data.scores is list && request.resource.data.scores.size() > 0
         && request.resource.data.scores.size() <= 12
         && request.resource.data.scores.hasOnly([1, 2, 3, 4, 5])
         && exists(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId))
         && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.active == true
+        && member(get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.courseId)
+        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.evaluatorUids.hasAny([request.auth.uid])
         && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targets.hasAny([request.resource.data.target])
-        && request.resource.data.target != get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targetUids[request.resource.data.target] != request.auth.uid
         && request.resource.data.scores.size() == get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.rubric.size()
         && id == request.resource.data.assignmentId + '_' + request.auth.uid + '_' + request.resource.data.target
         && !exists(/databases/$(database)/documents/submissions/$(id));
