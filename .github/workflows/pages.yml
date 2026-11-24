@@ -19,7 +19,7 @@ jobs:
       - name: Prepare public files
         run: |
           mkdir -p public
-          cp index.html app.js login-identity.js firebase-config.js styles.css public/
+          cp course-model.js index.html app.js login-identity.js firebase-config.js styles.css public/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
