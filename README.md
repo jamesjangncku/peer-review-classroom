@@ -27,3 +27,8 @@ Firestore Rules 限制教師建立評量及讀取全班統計，學生只能讀�
 
 `npm test` 會檢查 JavaScript 語法，並驗證主要介面入口、登入與即時更新程式路徑、Firestore 權限規則和 Pages workflow。實際 Firebase 登入與雙裝置即時同步需在設定 Firebase 專案和帳號後，以已部署網域操作確認。
 
+## 學號登入
+
+學生輸入學號與個人密碼；教師輸入原本 Email 與密碼。學號會去除前後空白並轉成小寫，再轉成 `學號@student.peer-review-classroom.invalid` 作為 Firebase Authentication 內部帳號。這是系統別名，不會寄信，也不代表學生的學校信箱。學生仍需預先建立 Authentication 帳號，並以該 UID 建立 users 文件（name、studentId、role: student、className）。現有真實 Email 帳號不會自動轉換。
+
+每人使用不同的密碼，學號不可作為密碼。內部別名無法收取重設密碼信，忘記密碼需由管理者協助重設。修改登入畫面不會自動建立學生帳號或匯入名冊。
