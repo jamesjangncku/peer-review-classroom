@@ -12,7 +12,10 @@ service cloud.firestore {
     }
     match /users/{uid} {
       allow read: if teacher() || (signedIn() && request.auth.uid == uid);
-      allow write: if false; // 僅由管理者在 Firebase Console 建立帳號資料。
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChangePassword'])
+        && request.resource.data.mustChangePassword == false;
+      allow create, delete: if false; // 帳號與角色僅由管理者建立。
     }
     match /assignments/{id} {
       allow read: if teacher() || (student() && resource.data.active == true
@@ -40,4 +43,3 @@ service cloud.firestore {
     }
   }
 }
-
