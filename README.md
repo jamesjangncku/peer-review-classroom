@@ -10,19 +10,8 @@
 
 1. 在 Firebase Console 建立專案與 Web app，啟用 **Authentication → Email/Password**，建立教師及學生登入帳號。
 2. 建立 Cloud Firestore database，將本專案的 `firestore.rules` 發佈為 Firestore Rules。
-3. 在 `users/{Firebase Auth UID}` 建立使用者文件。教師文件欄位為 `{ "name": "林老師", "role": "teacher" }`；學生文件例如 `{ "name": "王小明", "role": "student", "className": "設計一甲" }`。學生的班級名稱需與教師建立評量時輸入的班級一致。使用者文件只能由可信任的管理者建立。
-4. 為教師帳號設定 Firebase Auth custom claim `{ "teacher": true }`。可在有服務帳戶權限的受控管理環境執行：
-
-   ```js
-   import { initializeApp, cert } from 'firebase-admin/app';
-   import { getAuth } from 'firebase-admin/auth';
-   initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
-   await getAuth().setCustomUserClaims('教師的 Firebase UID', { teacher: true });
-   ```
-
-   服務帳戶私鑰只可放在受控環境，絕不可放入網站或 GitHub Pages。
-
-5. 本機設定 `firebase-config.js`（參考範例）。Firebase Web 設定會公開在網站中，資料保護依賴 Authentication 與 Firestore Rules，不依賴隱藏 API key。
+3. 建立教師及學生登入帳號，並在 `users/{Firebase Auth UID}` 建立角色文件。教師文件例如 `{ "name": "林老師", "role": "teacher" }`；學生文件例如 `{ "name": "王小明", "role": "student", "className": "設計一甲" }`。學生的班級名稱需與教師建立評量時輸入的班級一致。Rules 以管理者建立的使用者文件判斷角色，無需設定 custom claim。
+4. 本機設定 `firebase-config.js`（參考範例）。Firebase Web 設定會公開在網站中，資料保護依賴 Authentication 與 Firestore Rules，不依賴隱藏 API key。
 
 ## GitHub Pages 部署
 
