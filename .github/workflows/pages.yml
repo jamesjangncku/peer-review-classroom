@@ -18,16 +18,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare Firebase web config
-        env:
-          API_KEY: ${{ vars.FIREBASE_API_KEY }}
-          AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
-          PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-          APP_ID: ${{ vars.FIREBASE_APP_ID }}
-        run: |
-          cat > firebase-config.js <<EOF
-          window.FIREBASE_CONFIG = { apiKey: "$API_KEY", authDomain: "$AUTH_DOMAIN", projectId: "$PROJECT_ID", appId: "$APP_ID" };
-          EOF
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
