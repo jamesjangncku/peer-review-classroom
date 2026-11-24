@@ -9,7 +9,7 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: pages-courses-v2
   cancel-in-progress: true
 jobs:
   build:
