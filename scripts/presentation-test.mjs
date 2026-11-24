@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {assessmentDraft,reviewTargets} from '../course-model.js';
+import {resultRows,percentScore,csvText,validateQuestions} from '../assessment-tools.js';
+const people=[1,2,3].map(i=>({id:'s'+i,name:'學生'+i,studentId:'N0000000'+i})),course={id:'c',name:'課程',memberUids:people.map(p=>p.id),groupByUid:{s1:'甲',s2:'甲',s3:'乙'}};
+const q={title:'內容',min:1,max:10,scoreEnabled:true,commentEnabled:true,lowLabel:'不足',midLabel:'普通',highLabel:'完整'};
+const a={id:'a',...assessmentDraft(course,people,{title:'指定報告',questionConfigs:[q],presentationType:'students',presenterIds:['s1']})};
+assert.equal(a.targets.length,1);assert.equal(reviewTargets(a,'s1').length,0);assert.equal(reviewTargets(a,'s2').length,1);assert.equal(reviewTargets(a,'s3').length,1);
+const group=assessmentDraft(course,people,{title:'組別報告',questionConfigs:[q],presentationType:'groups',presenterIds:['甲']});assert.equal(group.targets.length,1);assert.equal(reviewTargets(group,'s1').length,0);assert.equal(reviewTargets(group,'s2').length,0);assert.equal(reviewTargets(group,'s3').length,1);
+const responses=[{assignmentId:'a',target:a.targets[0],scores:[8]},{assignmentId:'a',target:a.targets[0],scores:[10]}];const row=resultRows(a,responses,reviewTargets)[0];assert.equal(row.average,90);assert.equal(row.rank,1);assert.equal(row.expected,2);assert.equal(row.missing,0);assert.equal(resultRows(a,[],reviewTargets)[0].rank,null);
+const mixed={rubric:['內容','分析','文字'],questionConfigs:[q,{...q,max:100},{...q,scoreEnabled:false}]};assert.equal(percentScore(mixed,{scores:[8,90,null]}),85);assert.equal(percentScore(mixed,{scores:[8,90,null]},2),null);
+assert.throws(()=>validateQuestions([{...q,min:10,max:1}]));assert.throws(()=>validateQuestions([{...q,scoreEnabled:false,commentEnabled:false}]));assert.ok(csvText([['=SUM(A1)','a,"b']]).includes("'=SUM(A1)"));
+console.log('Presentation tests passed: specified individual/group exclusions, scoring ranges, percentage averages, ranking, missing counts, CSV safety.');

@@ -40,11 +40,12 @@ service cloud.firestore {
         && request.resource.data.title is string && request.resource.data.title.size() > 0
         && request.resource.data.rubric is list && request.resource.data.rubric.size() > 0
         && request.resource.data.rubric.size() <= 12
-        && request.resource.data.targets is list && request.resource.data.targets.size() >= 2
+        && request.resource.data.targets is list && request.resource.data.targets.size() >= 1
         && request.resource.data.targetUids is map && request.resource.data.evaluatorUids is list
         && request.resource.data.evaluatorUids == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.memberUids
-        && request.resource.data.reviewMode in ['all-others','other-groups']
-        && request.resource.data.groupByUid is map;
+        && request.resource.data.reviewMode in ['all-others','other-groups','selected-students','selected-groups']
+        && request.resource.data.groupByUid is map && request.resource.data.targetMembers is map
+        && validQuestions(request.resource.data);
     }
     match /assignments/{id} {
       allow read: if teacher() || (student() && member(resource.data.courseId) && resource.data.active == true);
@@ -52,7 +53,7 @@ service cloud.firestore {
         && request.resource.data.status == 'draft' && request.resource.data.active == false && request.resource.data.deleted == false;
       allow update: if teacher() && (
         (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'draft' && validAssessment()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','courseId','className','rubric','targets','targetUids','evaluatorUids','reviewMode','groupByUid','status','active','updatedAt','publishedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','courseId','className','rubric','targets','targetUids','evaluatorUids','reviewMode','groupByUid','status','active','updatedAt','publishedAt','schemaVersion','questionConfigs','instructions','allowRevision','anonymous','presentationType','presenterIds','targetMembers'])
           && ((request.resource.data.status == 'draft' && request.resource.data.active == false)
             || (request.resource.data.status == 'published' && request.resource.data.active == true
               && request.resource.data.publishedAt == request.time)))
@@ -68,29 +69,51 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+    function validQuestions(a) {
+      return a.schemaVersion == 2 && a.questionConfigs is list && a.questionConfigs.size() == a.rubric.size()
+        && a.instructions is string && a.instructions.size() <= 2000 && a.allowRevision is bool && a.anonymous is bool;
+    }
+    function validAnswers(a,d) {
+      let scores=d.scores;
+      let comments=d.get('questionComments',[]);
+      let qs=a.get('questionConfigs',[]);
+      return a.get('schemaVersion',1) == 2 ? (comments is list && comments.size() == scores.size()
+        && (scores.size() <= 0 || (qs[0].allowedScores.hasAny([scores[0]]) && comments[0] is string && comments[0].size() <= 600 && (qs[0].commentEnabled || comments[0] == '')))
+        && (scores.size() <= 1 || (qs[1].allowedScores.hasAny([scores[1]]) && comments[1] is string && comments[1].size() <= 600 && (qs[1].commentEnabled || comments[1] == '')))
+        && (scores.size() <= 2 || (qs[2].allowedScores.hasAny([scores[2]]) && comments[2] is string && comments[2].size() <= 600 && (qs[2].commentEnabled || comments[2] == '')))
+        && (scores.size() <= 3 || (qs[3].allowedScores.hasAny([scores[3]]) && comments[3] is string && comments[3].size() <= 600 && (qs[3].commentEnabled || comments[3] == '')))
+        && (scores.size() <= 4 || (qs[4].allowedScores.hasAny([scores[4]]) && comments[4] is string && comments[4].size() <= 600 && (qs[4].commentEnabled || comments[4] == '')))
+        && (scores.size() <= 5 || (qs[5].allowedScores.hasAny([scores[5]]) && comments[5] is string && comments[5].size() <= 600 && (qs[5].commentEnabled || comments[5] == '')))
+        && (scores.size() <= 6 || (qs[6].allowedScores.hasAny([scores[6]]) && comments[6] is string && comments[6].size() <= 600 && (qs[6].commentEnabled || comments[6] == '')))
+        && (scores.size() <= 7 || (qs[7].allowedScores.hasAny([scores[7]]) && comments[7] is string && comments[7].size() <= 600 && (qs[7].commentEnabled || comments[7] == '')))
+        && (scores.size() <= 8 || (qs[8].allowedScores.hasAny([scores[8]]) && comments[8] is string && comments[8].size() <= 600 && (qs[8].commentEnabled || comments[8] == '')))
+        && (scores.size() <= 9 || (qs[9].allowedScores.hasAny([scores[9]]) && comments[9] is string && comments[9].size() <= 600 && (qs[9].commentEnabled || comments[9] == '')))
+        && (scores.size() <= 10 || (qs[10].allowedScores.hasAny([scores[10]]) && comments[10] is string && comments[10].size() <= 600 && (qs[10].commentEnabled || comments[10] == '')))
+        && (scores.size() <= 11 || (qs[11].allowedScores.hasAny([scores[11]]) && comments[11] is string && comments[11].size() <= 600 && (qs[11].commentEnabled || comments[11] == '')))
+      ) : scores.hasOnly([1, 2, 3, 4, 5]);
+    }
+    function validSubmission(id) {
+      let d = request.resource.data;
+      let a = get(/databases/$(database)/documents/assignments/$(d.assignmentId)).data;
+      return student() && d.evaluatorUid == request.auth.uid
+        && d.evaluatorName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && d.keys().hasOnly(['assignmentId','target','scores','feedback','createdAt','evaluatorUid','evaluatorName','questionComments','updatedAt'])
+        && d.feedback is string && d.feedback.size() <= 600 && (a.get('schemaVersion',1) == 2 || d.feedback.size() >= 8)
+        && d.scores is list && d.scores.size() > 0 && d.scores.size() <= 12 && d.scores.size() == a.rubric.size()
+        && validAnswers(a,d) && a.active == true && member(a.courseId)
+        && a.evaluatorUids.hasAny([request.auth.uid]) && a.targets.hasAny([d.target])
+        && (a.get('schemaVersion',1) == 2 ? !a.targetMembers[d.target].hasAny([request.auth.uid]) : a.targetUids[d.target] != request.auth.uid)
+        && (a.get('reviewMode','all-others') != 'other-groups' || a.groupByUid[request.auth.uid] != a.groupByUid[a.targetUids[d.target]])
+        && id == d.assignmentId + '_' + request.auth.uid + '_' + d.target;
+    }
     match /submissions/{id} {
       allow read: if teacher() || (student() && resource.data.evaluatorUid == request.auth.uid);
-      allow create: if student()
-        && request.resource.data.evaluatorUid == request.auth.uid
-        && request.resource.data.evaluatorName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
-        && request.resource.data.keys().hasOnly(['assignmentId','target','scores','feedback','createdAt','evaluatorUid','evaluatorName'])
-        && request.resource.data.feedback is string && request.resource.data.feedback.size() >= 8 && request.resource.data.feedback.size() <= 600
-        && request.resource.data.scores is list && request.resource.data.scores.size() > 0
-        && request.resource.data.scores.size() <= 12
-        && request.resource.data.scores.hasOnly([1, 2, 3, 4, 5])
-        && exists(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId))
-        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.active == true
-        && member(get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.courseId)
-        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.evaluatorUids.hasAny([request.auth.uid])
-        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targets.hasAny([request.resource.data.target])
-        && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targetUids[request.resource.data.target] != request.auth.uid
-        && (get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.get('reviewMode','all-others') != 'other-groups'
-          || get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.groupByUid[request.auth.uid]
-            != get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.groupByUid[get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targetUids[request.resource.data.target]])
-        && request.resource.data.scores.size() == get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.rubric.size()
-        && id == request.resource.data.assignmentId + '_' + request.auth.uid + '_' + request.resource.data.target
-        && !exists(/databases/$(database)/documents/submissions/$(id));
-      allow update, delete: if false;
+      allow create: if validSubmission(id) && !exists(/databases/$(database)/documents/submissions/$(id));
+      allow update: if validSubmission(id)
+        && get(/databases/$(database)/documents/assignments/$(resource.data.assignmentId)).data.get('allowRevision',false) == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scores','feedback','questionComments','updatedAt'])
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
     }
   }
 }

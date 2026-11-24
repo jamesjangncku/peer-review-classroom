@@ -19,7 +19,7 @@ jobs:
       - name: Prepare public files
         run: |
           mkdir -p public
-          cp roster-grid.js course-model.js index.html app.js login-identity.js firebase-config.js styles.css public/
+          cp assessment-tools.js roster-grid.js course-model.js index.html app.js login-identity.js firebase-config.js styles.css public/
           node scripts/version-assets.mjs public "$GITHUB_SHA"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

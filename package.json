@@ -1,1 +1,1 @@
-{"name": "classroom-peer-review", "private": true, "type": "module", "scripts": {"test": "node --check app.js && node scripts/smoke-test.mjs && node scripts/course-test.mjs && node scripts/roster-grid-test.mjs"}}
+{"name": "classroom-peer-review", "private": true, "type": "module", "scripts": {"test": "node --check app.js && node scripts/smoke-test.mjs && node scripts/course-test.mjs && node scripts/roster-grid-test.mjs && node scripts/presentation-test.mjs"}}
