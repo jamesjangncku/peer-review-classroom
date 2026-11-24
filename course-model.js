@@ -11,7 +11,7 @@ export function assessmentDraft(course, students, values) {
   if (targets.some(s => s.includes('/'))) throw Error('學生姓名或學號不可含斜線。');
   return { title: values.title.trim(), courseId: course.id, className: course.name,
     rubric, targets, targetUids: Object.fromEntries(targets.map((t,i)=>[t,members[i].id])),
-    evaluatorUids: members.map(s=>s.id), perStudent: Math.min(members.length - 1,Math.max(1,Math.floor(Number(values.perStudent)||1))), active:true };
+    evaluatorUids: members.map(s=>s.id), perStudent: Math.min(members.length - 1,Math.max(1,Math.floor(Number(values.perStudent)||1))), active:false, status:'draft' };
 }
 export function templateValues(a) {
   return {rubric:[...a.rubric], perStudent:a.perStudent};
