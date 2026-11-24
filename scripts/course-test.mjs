@@ -1,13 +1,20 @@
 import assert from 'node:assert/strict';
-import {assessmentDraft,rosterIds,templateValues} from '../course-model.js';
+import {assessmentDraft,rosterIds,templateValues,reviewTargets,expectedReviews} from '../course-model.js';
 const students=[{id:'s1',studentId:'N00000001',name:'同名'},{id:'s2',studentId:'N00000002',name:'同名'}];
 const course={id:'c1',name:'課程一',memberUids:['s2','s1']};
 const original=assessmentDraft(course,students,{title:'原題目',rubric:['內容','表達'],perStudent:3});
 assert.equal(original.status,'draft');assert.equal(original.active,false);
-assert.equal(original.perStudent,1);assert.deepEqual(original.evaluatorUids,['s2','s1']);assert.equal(new Set(original.targets).size,2);
+assert.equal(original.reviewMode,'all-others');assert.equal(reviewTargets(original,'s1').length,1);assert.equal(expectedReviews(original),2);assert.deepEqual(original.evaluatorUids,['s2','s1']);assert.equal(new Set(original.targets).size,2);
 const copy=assessmentDraft({...course,id:'c2',name:'課程二'},students,{title:'新題目',...templateValues(original)});
 assert.equal(copy.courseId,'c2');assert.equal(copy.title,'新題目');assert.ok(!('id' in copy));assert.ok(!('submissions' in copy));copy.rubric.push('新項目');assert.equal(original.rubric.length,2);
 assert.equal(copy.status,'draft');assert.equal(copy.active,false);
 assert.deepEqual(rosterIds(' n00000001，N00000002\nn00000001 '),['N00000001','N00000002']);
 assert.throws(()=>assessmentDraft({...course,memberUids:['s1']},students,{title:'題目',rubric:['內容'],perStudent:2}));
 console.log('Course logic passed: multi-course identity, duplicate names, snapshot order, copy isolation and roster parsing.');
+
+const people=[...students,{id:'s3',studentId:'N00000003',name:'同學三'}];
+const grouped=assessmentDraft({id:'g',name:'分組課',memberUids:['s1','s2','s3'],groupByUid:{s1:'甲',s2:'甲',s3:'乙'}},people,{title:'分組評量',rubric:['內容']});
+assert.equal(grouped.reviewMode,'other-groups');assert.equal(reviewTargets(grouped,'s1').length,1);assert.equal(reviewTargets(grouped,'s3').length,2);assert.equal(expectedReviews(grouped),4);
+assert.throws(()=>assessmentDraft({id:'g',name:'未填齊',memberUids:['s1','s2'],groupByUid:{s1:'甲'}},people,{title:'題目',rubric:['內容']}),/分組/);
+assert.throws(()=>assessmentDraft({id:'g',name:'同組',memberUids:['s1','s2'],groupByUid:{s1:'甲',s2:'甲'}},people,{title:'題目',rubric:['內容']}),/兩組/);
+console.log('All-other/group target lists and exact expected counts passed.');

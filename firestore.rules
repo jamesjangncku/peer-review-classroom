@@ -33,8 +33,7 @@ service cloud.firestore {
       allow create, update: if teacher() && request.resource.data.name is string
         && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
         && request.resource.data.rubric is list && request.resource.data.rubric.size() > 0
-        && request.resource.data.rubric.size() <= 12 && request.resource.data.perStudent is int
-        && request.resource.data.perStudent >= 1;
+        && request.resource.data.rubric.size() <= 12;
     }
     function validAssessment() {
       return exists(/databases/$(database)/documents/courses/$(request.resource.data.courseId))
@@ -44,21 +43,29 @@ service cloud.firestore {
         && request.resource.data.targets is list && request.resource.data.targets.size() >= 2
         && request.resource.data.targetUids is map && request.resource.data.evaluatorUids is list
         && request.resource.data.evaluatorUids == get(/databases/$(database)/documents/courses/$(request.resource.data.courseId)).data.memberUids
-        && request.resource.data.perStudent is int && request.resource.data.perStudent >= 1
-        && request.resource.data.perStudent < request.resource.data.targets.size();
+        && request.resource.data.reviewMode in ['all-others','other-groups']
+        && request.resource.data.groupByUid is map;
     }
     match /assignments/{id} {
       allow read: if teacher() || (student() && member(resource.data.courseId) && resource.data.active == true);
       allow create: if teacher() && validAssessment()
-        && request.resource.data.status == 'draft' && request.resource.data.active == false;
+        && request.resource.data.status == 'draft' && request.resource.data.active == false && request.resource.data.deleted == false;
       allow update: if teacher() && (
-        (resource.data.get('status','published') == 'draft' && validAssessment()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','courseId','className','rubric','targets','targetUids','evaluatorUids','perStudent','status','active','updatedAt','publishedAt'])
+        (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'draft' && validAssessment()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','courseId','className','rubric','targets','targetUids','evaluatorUids','reviewMode','groupByUid','status','active','updatedAt','publishedAt'])
           && ((request.resource.data.status == 'draft' && request.resource.data.active == false)
             || (request.resource.data.status == 'published' && request.resource.data.active == true
               && request.resource.data.publishedAt == request.time)))
-        || (resource.data.get('status','published') == 'published'
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])));
+        || (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'published'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']))
+        || (resource.data.get('deleted',false) == false && request.resource.data.deleted == true
+          && request.resource.data.active == false && request.resource.data.wasActive == resource.data.active
+          && request.resource.data.deletedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','active','wasActive','deletedAt']))
+        || (resource.data.get('deleted',false) == true && request.resource.data.deleted == false
+          && request.resource.data.active == (resource.data.get('status','published') != 'draft' && resource.data.wasActive)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','active'])));
+
       allow delete: if false;
     }
     match /submissions/{id} {
@@ -77,6 +84,9 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.evaluatorUids.hasAny([request.auth.uid])
         && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targets.hasAny([request.resource.data.target])
         && get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targetUids[request.resource.data.target] != request.auth.uid
+        && (get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.get('reviewMode','all-others') != 'other-groups'
+          || get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.groupByUid[request.auth.uid]
+            != get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.groupByUid[get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.targetUids[request.resource.data.target]])
         && request.resource.data.scores.size() == get(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.rubric.size()
         && id == request.resource.data.assignmentId + '_' + request.auth.uid + '_' + request.resource.data.target
         && !exists(/databases/$(database)/documents/submissions/$(id));
