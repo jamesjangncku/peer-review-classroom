@@ -32,7 +32,7 @@ function show(id){views.forEach(x=>$('#'+x).classList.toggle('hidden',x!==id));$
 function setError(s){$('#login-error').textContent=s}
 function authError(code){return ({'auth/invalid-credential':'帳號或密碼錯誤。','auth/invalid-email':'電子郵件格式不正確。','auth/too-many-requests':'登入嘗試過多，請稍後再試。'})[code]||'登入失敗，請檢查帳號密碼與 Firebase Authentication 設定。'}
 async function onUser(u){cleanup();user=u;if(!u){profile=null;show('login-view');return}try{const s=await getDoc(doc(db,'users',u.uid));if(!s.exists())throw Error('此帳號尚未完成課堂身分設定，請聯絡教師。');profile=s.data();enterApp();}catch(e){await signOut(auth);show('login-view');setError(e.message)}}
-function enterApp(){if(!demo && profile.mustChangePassword){show('password-view');return;}show(profile.role==='teacher'?'teacher-view':'student-view');$('#student-name').textContent=profile.name||'學生';$('#connection').classList.add('online');$('#connection').innerHTML='<i></i>'+(demo?'預覽模式':'已連線');$('#preview-switch').classList.toggle('hidden',!demo);$('#preview-switch').textContent=profile.role==='teacher'?'切換學生預覽':'切換教師預覽';listenData()}
+function enterApp(){show(profile.role==='teacher'?'teacher-view':'student-view');$('#student-name').textContent=profile.name||'學生';$('#connection').classList.add('online');$('#connection').innerHTML='<i></i>'+(demo?'預覽模式':'已連線');$('#preview-switch').classList.toggle('hidden',!demo);$('#preview-switch').textContent=profile.role==='teacher'?'切換學生預覽':'切換教師預覽';listenData()}
 function cleanup(){document.querySelectorAll('dialog[open]').forEach(d=>d.close());managementStops.splice(0).forEach(f=>f());courseStops.splice(0).forEach(f=>f());courses=[];students=[];templates=[];assignmentRows=[];submissions=[];stopAssignments?.();stopSubs?.();stopProfile?.();stopAssignments=stopSubs=stopProfile=null}
 function listenData(){
  if(demo){assignmentRows=loadDemo().assignments;submissions=loadDemo().submissions;renderTeacher();renderStudent();return;}
@@ -124,3 +124,4 @@ for(const [prefix,container] of [['weekly','#weekly-options'],['presenter','#pre
 
 $('#open-password-settings').onclick=()=>{cleanup();$('#change-password-form').reset();$('#password-error').textContent='';show('password-view');};
 $('#skip-password-change').onclick=async()=>{const b=$('#skip-password-change');b.disabled=true;try{await setDoc(doc(db,'users',user.uid),{mustChangePassword:false},{merge:true});profile.mustChangePassword=false;$('#change-password-form').reset();$('#password-error').textContent='';stopAssignments?.();stopSubs?.();managementStops.splice(0).forEach(f=>f());courseStops.splice(0).forEach(f=>f());enterApp();toast('已保留原密碼。');}catch(e){$('#password-error').textContent='暫時無法進入，請稍後重試。';}finally{b.disabled=false;}};
+
