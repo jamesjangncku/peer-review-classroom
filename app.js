@@ -131,3 +131,6 @@ $('#open-roster').onclick=()=>$('#roster-dialog').showModal();$('#close-roster')
 $('#open-results').onclick=()=>{if(!selectedAssessment()){toast('請先選擇評量。');return;}$('#teacher-overview').classList.add('hidden');$('#results-page').classList.remove('hidden');renderResults();window.scrollTo(0,0);};
 $('#back-results').onclick=()=>{$('#results-page').classList.add('hidden');$('#teacher-overview').classList.remove('hidden');window.scrollTo(0,0);};
 
+$('#open-templates').onclick=()=>$('#templates-dialog').showModal();
+$('#close-templates').onclick=()=>$('#templates-dialog').close();
+
