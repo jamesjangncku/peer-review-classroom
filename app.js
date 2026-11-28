@@ -134,3 +134,6 @@ $('#back-results').onclick=()=>{$('#results-page').classList.add('hidden');$('#t
 $('#open-templates').onclick=()=>$('#templates-dialog').showModal();
 $('#close-templates').onclick=()=>$('#templates-dialog').close();
 
+$('#trash-count').onclick=()=>$('#trash-dialog').showModal();
+$('#close-trash').onclick=()=>$('#trash-dialog').close();
+
