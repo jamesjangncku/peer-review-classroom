@@ -22,7 +22,7 @@ export function assessmentDraft(course, students, values) {
   if(presentationType==='groups'){if(!grouped)throw Error('請先在課程名冊設定組別。');const selected=values.presenterIds||[];targets=[...new Set(selected)].filter(g=>Object.values(groupByUid).includes(g)).map(g=>'第'+g+'組');targetMembers=Object.fromEntries(targets.map(t=>[t,members.filter(s=>'第'+groupByUid[s.id]+'組'===t).map(s=>s.id)]));targetUids=Object.fromEntries(targets.map(t=>[t,'']));reviewMode='selected-groups';}
   if(!targets.length)throw Error('請至少指定一位報告者或一個報告組別。');
   if(targets.some(t=>t.includes('/')))throw Error('報告者或組別名稱不可包含斜線。');
-  return {schemaVersion:2,questionConfigs,instructions:(values.instructions||'').trim(),allowRevision:!!values.allowRevision,anonymous:values.anonymous!==false,presentationType,presenterIds:values.presenterIds||[],targetMembers, title: values.title.trim(), courseId: course.id, className: course.name,
+  return {questionsLocked:false,schemaVersion:2,questionConfigs,instructions:(values.instructions||'').trim(),allowRevision:!!values.allowRevision,anonymous:values.anonymous!==false,presentationType,presenterIds:values.presenterIds||[],targetMembers, title: values.title.trim(), courseId: course.id, className: course.name,
     rubric, targets, targetUids,
     evaluatorUids: members.map(s=>s.id), reviewMode,groupByUid,deleted:false,active:false, status:'draft' };
 }
@@ -56,3 +56,4 @@ export function weeklyPresenters(a,course,students,type,selected){
  }
  return {targets,targetUids,targetMembers,currentTargets,weeklyType:type};
 }
+

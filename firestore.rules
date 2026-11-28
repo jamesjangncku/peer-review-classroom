@@ -50,13 +50,19 @@ service cloud.firestore {
     match /assignments/{id} {
       allow read: if teacher() || (student() && member(resource.data.courseId) && resource.data.active == true);
       allow create: if teacher() && validAssessment()
-        && request.resource.data.status == 'draft' && request.resource.data.active == false && request.resource.data.deleted == false;
+        && request.resource.data.status == 'draft' && request.resource.data.active == false && request.resource.data.deleted == false
+        && request.resource.data.questionsLocked == false;
       allow update: if teacher() && (
         (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'draft' && validAssessment()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','courseId','className','rubric','targets','targetUids','evaluatorUids','reviewMode','groupByUid','status','active','updatedAt','publishedAt','schemaVersion','questionConfigs','instructions','allowRevision','anonymous','presentationType','presenterIds','targetMembers'])
           && ((request.resource.data.status == 'draft' && request.resource.data.active == false)
             || (request.resource.data.status == 'published' && request.resource.data.active == true
               && request.resource.data.publishedAt == request.time)))
+        || (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'published'
+          && resource.data.get('questionsLocked',true) == false && validQuestions(request.resource.data)
+          && request.resource.data.rubric is list && request.resource.data.rubric.size() > 0 && request.resource.data.rubric.size() <= 12
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rubric','questionConfigs','updatedAt'])
+          && request.resource.data.updatedAt == request.time)
         || (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'published'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']))
         || (resource.data.get('deleted',false) == false && resource.data.get('status','published') == 'published'
@@ -78,6 +84,14 @@ service cloud.firestore {
           && request.resource.data.active == (resource.data.get('status','published') != 'draft' && resource.data.wasActive)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted','active'])));
 
+      allow update: if student() && resource.data.get('questionsLocked',true) == false
+        && resource.data.active == true && member(resource.data.courseId)
+        && request.resource.data.questionsLocked == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['questionsLocked','lockSubmissionId'])
+        && request.resource.data.lockSubmissionId is string
+        && !exists(/databases/$(database)/documents/submissions/$(request.resource.data.lockSubmissionId))
+        && getAfter(/databases/$(database)/documents/submissions/$(request.resource.data.lockSubmissionId)).data.assignmentId == id
+        && getAfter(/databases/$(database)/documents/submissions/$(request.resource.data.lockSubmissionId)).data.evaluatorUid == request.auth.uid;
       allow delete: if false;
     }
     function validQuestions(a) {
@@ -119,7 +133,8 @@ service cloud.firestore {
     }
     match /submissions/{id} {
       allow read: if teacher() || (student() && resource.data.evaluatorUid == request.auth.uid);
-      allow create: if validSubmission(id) && !exists(/databases/$(database)/documents/submissions/$(id));
+      allow create: if validSubmission(id) && !exists(/databases/$(database)/documents/submissions/$(id))
+        && getAfter(/databases/$(database)/documents/assignments/$(request.resource.data.assignmentId)).data.get('questionsLocked',true) == true;
       allow update: if validSubmission(id)
         && get(/databases/$(database)/documents/assignments/$(resource.data.assignmentId)).data.get('allowRevision',false) == true
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['scores','feedback','questionComments','updatedAt'])
@@ -128,3 +143,4 @@ service cloud.firestore {
     }
   }
 }
+
