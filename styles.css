@@ -20,3 +20,6 @@
 
 .teacher-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px}.teacher-shortcuts .primary{padding:8px 13px}.teacher-shortcuts+.preview-dialog{margin:auto}#teacher-overview .page-heading{padding:12px 0 8px}#teacher-overview .page-heading p{margin:2px 0}#teacher-overview>.action-row{margin:6px 0}#teacher-overview .trash-panel{margin:8px 0;padding:9px}#teacher-overview .template-row{padding:6px 0}#templates-dialog .template-row small{line-height:1.35;margin-top:3px}
 
+/* Consistent action states for teacher controls. */
+#teacher-view button.primary:not(:disabled),#teacher-view button.quiet:not(:disabled){background:#24775d;color:#fff;border:0;border-radius:6px;padding:8px 13px;opacity:1;cursor:pointer}#teacher-view button.primary:not(:disabled):hover,#teacher-view button.quiet:not(:disabled):hover{background:#1c624b}#teacher-view button.primary:disabled,#teacher-view button.quiet:disabled{background:#e1e8e2;color:#8b9990;border:0;border-radius:6px;padding:8px 13px;opacity:1;cursor:not-allowed}#teacher-view .teacher-shortcuts button{min-height:40px}
+
